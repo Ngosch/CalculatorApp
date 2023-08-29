@@ -13,8 +13,10 @@ class ViewController: UIViewController {
     var resultNumStr = ""
     var enteredFirstNumFlag: Bool = false
     var afterCaliuculationFlag = false
+    var calculationHistory: [String] = []  // 計算履歴を保存する配列
 
     @IBOutlet weak var textLabel: UILabel!
+    @IBOutlet weak var historyLabel: UILabel!  // 計算履歴を表示するためのUILabel
     
     // グラデーションレイヤーをプロパティとして保持
     let gradientLayer = CAGradientLayer()
@@ -28,6 +30,7 @@ class ViewController: UIViewController {
         self.view.layer.insertSublayer(gradientLayer, at: 0)
         
         textLabel.text = ""
+        historyLabel.text = ""  // 計算履歴の初期化
     }
     
     // グラデーションの色をランダムに更新する関数
@@ -46,88 +49,69 @@ class ViewController: UIViewController {
         )
     }
     
-    @IBAction func pressNum(_ sender: UIButton) {
-        // アニメーションの追加
-        sender.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
-        UIView.animate(withDuration: 0.2,
-                       delay: 0,
-                       usingSpringWithDamping: 0.2,
-                       initialSpringVelocity: 6.0,
-                       options: .allowUserInteraction,
-                       animations: { [weak self] in
-                        sender.transform = .identity
-                       },
-                       completion: nil)
-        
-        var pushed_num = (sender.titleLabel?.text)!
-        print(pushed_num + "が入力されました。")
-        if afterCaliuculationFlag {
-            firstNumStr = resultNumStr
-            secondNumStr = ""
-            afterCaliuculationFlag = false
+    // 計算履歴を更新する関数
+    func updateCalculationHistory(newEntry: String) {
+        calculationHistory.append(newEntry)
+        if calculationHistory.count > 5 {
+            calculationHistory.removeFirst()
         }
-        
-        if enteredFirstNumFlag == false {
-            firstNumStr += pushed_num
-            textLabel.text = firstNumStr
-        } else {
-            secondNumStr += pushed_num
+        historyLabel.text = calculationHistory.joined(separator: "\n")
+    }
+    
+    @IBAction func pressNum(_ sender: UIButton) {
+        let pushedNum = sender.titleLabel?.text ?? ""
+        print("\(pushedNum)が入力されました。")
+        if enteredFirstNumFlag {
+            secondNumStr += pushedNum
             textLabel.text = secondNumStr
+        } else {
+            firstNumStr += pushedNum
+            textLabel.text = firstNumStr
         }
     }
     
-    @IBAction func pressOperator(_ sender: UIButton){
-        var pushed_arithmetic = (sender.titleLabel?.text)!
-        print(pushed_arithmetic + "が入力されました。")
-        if afterCaliuculationFlag {
-            firstNumStr = resultNumStr
-            secondNumStr = ""
-            afterCaliuculationFlag = false
-        }
-        
-        if enteredFirstNumFlag == false && firstNumStr != "" {
-            operatorStr = pushed_arithmetic
+    @IBAction func pressOperator(_ sender: UIButton) {
+        let pushedOperator = sender.titleLabel?.text ?? ""
+        print("\(pushedOperator)が入力されました。")
+        if !enteredFirstNumFlag && !firstNumStr.isEmpty {
+            operatorStr = pushedOperator
             enteredFirstNumFlag = true
-        } else if enteredFirstNumFlag && firstNumStr != "" {
-            operatorStr = pushed_arithmetic
         }
     }
     
     @IBAction func pressEqual(_ sender: UIButton) {
-        if firstNumStr != "" && secondNumStr != "" && operatorStr != "" {
-            if let firstNumDouble = Double(firstNumStr), let secondNumDouble = Double(secondNumStr) {
-                var resultNum: Double = 0.0
+        if !firstNumStr.isEmpty && !secondNumStr.isEmpty && !operatorStr.isEmpty {
+            if let firstNum = Double(firstNumStr), let secondNum = Double(secondNumStr) {
+                var result: Double = 0
                 switch operatorStr {
                 case "+":
-                    resultNum = firstNumDouble + secondNumDouble
+                    result = firstNum + secondNum
                 case "-":
-                    resultNum = firstNumDouble - secondNumDouble
+                    result = firstNum - secondNum
                 case "*":
-                    resultNum = firstNumDouble * secondNumDouble
+                    result = firstNum * secondNum
                 case "/":
-                    if secondNumDouble != 0 {
-                        resultNum = firstNumDouble / secondNumDouble
+                    if secondNum != 0 {
+                        result = firstNum / secondNum
                     } else {
-                        textLabel.text = "エラー！"
-                        print("0で割ったため")
+                        textLabel.text = "エラー"
                         return
                     }
-                default: break
+                default:
+                    return
                 }
-                // 小数点以下が0の場合は、整数として表示
-                if floor(resultNum) == resultNum {
-                    resultNumStr = String(format: "%.0f", resultNum)
-                } else {
-                    resultNumStr = String(resultNum)
-                }
+                resultNumStr = String(result)
                 textLabel.text = resultNumStr
-                afterCaliuculationFlag = true
-                enteredFirstNumFlag = false
-                operatorStr = ""
-                print(resultNumStr + "が出力されました。")
                 
-                // 計算結果を表示した後、グラデーションの色を更新
-                updateGradientColors()
+                // 計算履歴を更新
+                let newEntry = "\(firstNumStr) \(operatorStr) \(secondNumStr) = \(resultNumStr)"
+                updateCalculationHistory(newEntry: newEntry)
+                
+                // 状態をリセット
+                firstNumStr = ""
+                secondNumStr = ""
+                operatorStr = ""
+                enteredFirstNumFlag = false
             }
         }
     }
@@ -136,10 +120,8 @@ class ViewController: UIViewController {
         firstNumStr = ""
         secondNumStr = ""
         operatorStr = ""
-        resultNumStr = ""
         textLabel.text = ""
         enteredFirstNumFlag = false
-        afterCaliuculationFlag = false
         print("All Clearが実行されました。")
     }
 }
